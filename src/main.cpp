@@ -43,8 +43,8 @@ int traverseCells(int board[3][3], bool isMax, Proc check) {
         move = -1;
     }
 
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
+    for (int i = 0; i < 3; i++) 
+        for (int j = 0; j < 3; j++) 
             // Check if the cell is empty
             if (board[i][j] == 0) {
                 // Make the move
@@ -55,23 +55,21 @@ int traverseCells(int board[3][3], bool isMax, Proc check) {
                 // Undo the move
                 board[i][j] = 0;
             }
-        }
-    }
 
     return best;
 }
 
+// Minimax algorythm
 int minimax(int board[3][3], int depth, bool isMax) {
     int score = evaluate(board);
 
-    // If 1 has won the game return score
+    // If 1 has won the game
     if (score == 10)
         return score - depth;
     else if (score == -10)
         return score + depth;
 
-    // If there are no more moves and no winner then
-    // it is a tie
+    // If there are no moves left and no winner
     if (isMovesLeft(board) == false)
         return 0;
 
@@ -80,7 +78,7 @@ int minimax(int board[3][3], int depth, bool isMax) {
         return traverseCells(board, isMax, [board, depth, isMax](int best) {
             return std::max(best, minimax(board, depth + 1, false));
             });
-
+    // Minimizer's score
     return traverseCells(board, isMax, [board, depth, isMax](int best) {
         return std::min(best, minimax(board, depth + 1, true));
         });
@@ -88,27 +86,31 @@ int minimax(int board[3][3], int depth, bool isMax) {
 
 
 // Returns the best possible move for the player
-Move findBestMove(int board[3][3]) {
-    int bestVal = -1000;
+Move findBestMove(int board[3][3], bool isMax) {
     Move bestMove;
     bestMove.row = -1;
     bestMove.col = -1;
+    if (!isMax)
+        bestMove.moveVal = 1000;
 
     for (int i = 0; i < 3; i++)
         for (int j = 0; j < 3; j++)
             // Check if cell is empty
             if (board[i][j] == 0) {
                 // Make the move
-                board[i][j] = 1;
+                if(isMax)
+                    board[i][j] = 1;
+                else
+                    board[i][j] = -1;
 
                 // compute evaluation function for this
                 // move.
-                int moveVal = minimax(board, 0, false);
+                int moveVal = minimax(board, 0, !isMax);
 
                 // Undo the move
                 board[i][j] = 0;
 
-                if (moveVal > bestMove.moveVal) {
+                if ((isMax && moveVal > bestMove.moveVal) || (!isMax && moveVal < bestMove.moveVal)) {
                     bestMove.row = i;
                     bestMove.col = j;
                     bestMove.moveVal = moveVal;
@@ -118,6 +120,7 @@ Move findBestMove(int board[3][3]) {
     return bestMove;
 }
 
+// Draws Tic Tac Toe board from the board 
 void drawBoard(int board[3][3]) {
     system("CLS");
     std::cout << "-------------\n";
@@ -137,59 +140,93 @@ void drawBoard(int board[3][3]) {
     std::cout << std::endl;
 }
 
-void gameLoop(int board[3][3]) {
+// Main game loop
+void gameLoop(int board[3][3], int players) {
     bool gameOver = false;
     bool playerTurn = true;
     int boardValue = 0;
     while (!gameOver) {
         drawBoard(board);
 
-        if (boardValue == -10) {
-            std::cout << "Player won\n";
+        if (boardValue == 10) {
+            if (players == 2)
+                std::cout << "Player 1 won\n";
             gameOver = true;
+            break;
         }
-        else if (boardValue == 10) {
-            std::cout << "AI won\n";
+        else if (boardValue == -10) {
+            if (players == 2)
+                std::cout << "Player 2 won\n";
+            if (players == 1)
+                std::cout << "AI won\n";
             gameOver = true;
+            break;
         }
         else if (!isMovesLeft(board)) {
             std::cout << "draw\n";
             gameOver = true;
+            break;
         }
-
         if (playerTurn) {
-            double move = 0;
-            std::cout << "[move (1-9)]: ";
-            std::cin >> move;
-            if ((int)move < 10 && (int)move > 0) {
-                int& moveOnBoard = board[(int)std::ceil(move / 3) - 1][(int)(move - 3 * std::ceil(move / 3)) + 2];
-                if (moveOnBoard == 0) {
-                    moveOnBoard = -1;
-                    boardValue = evaluate(board);
-                    playerTurn = false;
+            if (players == 2 || players == 1) {
+                double move = 0;
+                std::cout << "[move (1-9)]: ";
+                std::cin >> move;
+                if ((int)move < 10 && (int)move > 0) {
+                    int& moveOnBoard = board[(int)std::ceil(move / 3) - 1][(int)(move - 3 * std::ceil(move / 3)) + 2];
+                    if (moveOnBoard == 0) {
+                        moveOnBoard = 1;
+                        boardValue = evaluate(board);
+                        playerTurn = false;
+                    }
                 }
+            } 
+            else {
+                Move AImove = findBestMove(board, true);
+                boardValue = AImove.moveVal;
+                board[AImove.row][AImove.col] = 1;
+                playerTurn = false;
             }
         }
         else {
-            Move AImove = findBestMove(board);
-            boardValue = AImove.moveVal;
-            board[AImove.row][AImove.col] = 1;
-            playerTurn = true;
+            if (players == 1 || players == 0) {
+                Move AImove = findBestMove(board, false);
+                boardValue = AImove.moveVal;
+                board[AImove.row][AImove.col] = -1;
+                playerTurn = true;
+            }
+            else {
+                double move = 0;
+                std::cout << "[move (1-9)]: ";
+                std::cin >> move;
+                if ((int)move < 10 && (int)move > 0) {
+                    int& moveOnBoard = board[(int)std::ceil(move / 3) - 1][(int)(move - 3 * std::ceil(move / 3)) + 2];
+                    if (moveOnBoard == 0) {
+                        moveOnBoard = -1;
+                        boardValue = evaluate(board);
+                        playerTurn = true;
+                    }
+                }
+            }
         }
     }
 }
 
-
-// Driver code
-int main()
-{
-	int board[3][3] =
-	{
+int main() {
+	int board[3][3] = {
 		{ 0, 0, 0 },
 		{ 0, 0, 0 },
 		{ 0, 0, 0 }
 	};
+    int players = -1;
+    
+    while (players < 0 || players > 2) {
+        std::cout << "Number of human players: ";
+        std::cin >> players;
+        system("CLS");
+    }
 
-    gameLoop(board);
+     gameLoop(board, players);
+
 	return 0;
 }
