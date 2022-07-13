@@ -86,25 +86,23 @@ int minimax(int board[3][3], int depth, bool isMax) {
 
 
 // Returns the best possible move for the player
-Move findBestMove(int board[3][3], bool isMax) {
+Move findBestMove(int board[3][3], bool& isMax) {
     Move bestMove;
     bestMove.row = -1;
     bestMove.col = -1;
-    if (!isMax)
+    int move = 1;
+    if (!isMax) {
         bestMove.moveVal = 1000;
+        move = -1;
+    }
 
     for (int i = 0; i < 3; i++)
         for (int j = 0; j < 3; j++)
-            // Check if cell is empty
+            // Check if the cell is empty
             if (board[i][j] == 0) {
-                // Make the move
-                if(isMax)
-                    board[i][j] = 1;
-                else
-                    board[i][j] = -1;
+                board[i][j] = move;
 
-                // compute evaluation function for this
-                // move.
+                // Compute evaluation function for the move
                 int moveVal = minimax(board, 0, !isMax);
 
                 // Undo the move
@@ -117,6 +115,7 @@ Move findBestMove(int board[3][3], bool isMax) {
                 }
             }
 
+    isMax = !isMax;
     return bestMove;
 }
 
@@ -138,6 +137,27 @@ void drawBoard(int board[3][3]) {
         std::cout << "-------------\n";
     }
     std::cout << std::endl;
+}
+
+Move getPlayerMove(int board[3][3], bool& playerTurn) {
+    Move playerMove;
+    double move = 0;
+    std::cout << "[move (1-9)]: ";
+    std::cin >> move;
+
+    if ((int)move < 10 && (int)move > 0) {
+        int row = std::ceil(move / 3) - 1;
+        int col = move - 3 * std::ceil(move / 3) + 2;
+        int moveOnBoard = board[row][col];
+        if (moveOnBoard == 0) {
+            playerMove.row = row;
+            playerMove.col = col;
+            playerMove.moveVal = evaluate(board);
+            playerTurn = !playerTurn;
+        }
+    }
+
+    return playerMove;
 }
 
 // Main game loop
@@ -167,46 +187,29 @@ void gameLoop(int board[3][3], int players) {
             gameOver = true;
             break;
         }
+
         if (playerTurn) {
-            if (players == 2 || players == 1) {
-                double move = 0;
-                std::cout << "[move (1-9)]: ";
-                std::cin >> move;
-                if ((int)move < 10 && (int)move > 0) {
-                    int& moveOnBoard = board[(int)std::ceil(move / 3) - 1][(int)(move - 3 * std::ceil(move / 3)) + 2];
-                    if (moveOnBoard == 0) {
-                        moveOnBoard = 1;
-                        boardValue = evaluate(board);
-                        playerTurn = false;
-                    }
-                }
+            if (players == 0) {
+                Move AIMove = findBestMove(board, playerTurn);
+                boardValue = AIMove.moveVal;
+                board[AIMove.row][AIMove.col] = 1;
             } 
             else {
-                Move AImove = findBestMove(board, true);
-                boardValue = AImove.moveVal;
-                board[AImove.row][AImove.col] = 1;
-                playerTurn = false;
+                Move playerMove = getPlayerMove(board, playerTurn);
+                board[playerMove.row][playerMove.col] = 1;
+                boardValue = playerMove.moveVal;
             }
         }
         else {
-            if (players == 1 || players == 0) {
-                Move AImove = findBestMove(board, false);
-                boardValue = AImove.moveVal;
-                board[AImove.row][AImove.col] = -1;
-                playerTurn = true;
+            if (players == 2) {
+                Move playerMove = getPlayerMove(board, playerTurn);
+                board[playerMove.row][playerMove.col] = -1;
+                boardValue = playerMove.moveVal;
             }
             else {
-                double move = 0;
-                std::cout << "[move (1-9)]: ";
-                std::cin >> move;
-                if ((int)move < 10 && (int)move > 0) {
-                    int& moveOnBoard = board[(int)std::ceil(move / 3) - 1][(int)(move - 3 * std::ceil(move / 3)) + 2];
-                    if (moveOnBoard == 0) {
-                        moveOnBoard = -1;
-                        boardValue = evaluate(board);
-                        playerTurn = true;
-                    }
-                }
+                Move AIMove = findBestMove(board, playerTurn);
+                boardValue = AIMove.moveVal;
+                board[AIMove.row][AIMove.col] = -1;
             }
         }
     }
